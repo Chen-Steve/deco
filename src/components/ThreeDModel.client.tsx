@@ -16,9 +16,13 @@ interface ModelProps {
 function CameraControls() {
   const { camera, gl } = useThree()
   const moveSpeed = useRef(0.1)
+  const jumpForce = useRef(0.15)
+  const gravity = useRef(0.006)
   const rotateSpeed = useRef(0.002)
   const keys = useRef<{ [key: string]: boolean }>({})
   const yawObject = useRef(new THREE.Object3D())
+  const velocity = useRef(new THREE.Vector3())
+  const isJumping = useRef(false)
 
   useEffect(() => {
     const eyeHeight = 1.6 // Average human eye height in meters
@@ -28,6 +32,10 @@ function CameraControls() {
 
     const handleKeyDown = (event: KeyboardEvent) => {
       keys.current[event.key.toLowerCase()] = true
+      if (event.code === 'Space' && !isJumping.current) {
+        velocity.current.y = jumpForce.current
+        isJumping.current = true
+      }
     }
 
     const handleKeyUp = (event: KeyboardEvent) => {
@@ -74,9 +82,20 @@ function CameraControls() {
       yawObject.current.position.addScaledVector(direction, moveSpeed.current)
     }
 
+    // Apply gravity
+    velocity.current.y -= gravity.current
+    yawObject.current.position.y += velocity.current.y
+
+    // Check if we're on the ground
+    if (yawObject.current.position.y < 1.6) {
+      velocity.current.y = 0
+      yawObject.current.position.y = 1.6
+      isJumping.current = false
+    }
+
     console.log('Keys:', keys.current)
-    console.log('Direction:', direction)
     console.log('Position:', yawObject.current.position.toArray())
+    console.log('Velocity:', velocity.current.toArray())
   })
 
   return <primitive object={yawObject.current} />
